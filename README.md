@@ -1,2 +1,8 @@
 # Book-Genre-Clasifer
-Ever trie to guess the genere of a book by reaing its title? Well, in this project I was trying to o it using a massive ata base of Books (their titles an genres), MLLib Spark and the use of three ifferent ML models incluing:
+Have you ever tried to guess the genre of a book by reading its title? Well, in this project, I was trying to do it using a massive database of Books (their titles and genres), MLLib Spark, and the use of three different ML models, including:
+
+1- Support Vector Machine (SVM)
+
+2- Logistic Regression
+
+3- Neural Networks
