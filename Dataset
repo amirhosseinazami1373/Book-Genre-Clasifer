@@ -1,6 +1,9 @@
 The dataset employed for this book genre classification project is derived from a comprehensive collection of book data, which includes titles, authors, and associated genres. The dataset comprises a diverse 
 range of genres, with a total of 32 distinct categories reflecting a wide array of literary classifications. These categories span from general interest topics such as "Arts & Photography" and 
 "Biographies & Memoirs" to more niche genres like "Gay & Lesbian" and "Test Preparation."
+Download the dataset from the link below:
+https://github.com/uchidalab/book-dataset.git
+
 Data Structure and Content: Each entry in the dataset is detailed with several attributes:
 AMAZON INDEX (ASIN): A unique identifier assigned by Amazon for product listing, which in this case applies to books.
 FILENAME: The name of the image file associated with the book cover.
