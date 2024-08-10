@@ -6,3 +6,7 @@ Have you ever tried to guess the genre of a book by reading its title? Well, in 
 2- Logistic Regression
 
 3- Neural Networks
+
+You will need to download the data using this link:
+
+  https://github.com/uchidalab/book-dataset.git
