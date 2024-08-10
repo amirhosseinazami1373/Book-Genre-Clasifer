@@ -1,0 +1,30 @@
+from pyspark.sql import SparkSession
+from pyspark.ml.feature import Tokenizer, RegexTokenizer, HashingTF, IDF
+from pyspark.ml import Pipeline
+
+# Initialize a Spark session
+spark = SparkSession.builder.appName("BookGenreClassification").getOrCreate()
+
+# Load data
+data = spark.read.csv("dbfs:/FileStore/shared_uploads/book32_listing-1.csv", header=True, inferSchema=True)
+
+# Filter out rows where the TITLE is null to prevent errors in processing
+data = data.filter(data.TITLE.isNotNull())
+
+# Tokenization and Normalization using the correct TITLE column
+tokenizer = RegexTokenizer(inputCol="TITLE", outputCol="words", pattern="\\W", toLowercase=True)
+
+# Feature Extraction
+hashingTF = HashingTF(inputCol="words", outputCol="rawFeatures", numFeatures=1000)
+idf = IDF(inputCol="rawFeatures", outputCol="features")
+
+# Building a pipeline
+pipeline = Pipeline(stages=[tokenizer, hashingTF, idf])
+
+# Fit the pipeline to training documents
+model = pipeline.fit(data)
+
+# Transform the data
+transformed_data = model.transform(data)
+
+# Now you can proceed with model training using the transformed_data
