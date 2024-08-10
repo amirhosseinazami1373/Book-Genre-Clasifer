@@ -1,4 +1,9 @@
-# Book-Genre-Classifier
+<h1 style="display: flex; justify-content: space-between; align-items: right;">
+    <span>Book-Genre Classifier</span>
+    <img src="https://spark.apache.org/images/spark-logo-trademark.png" style="width: 100px;"/>
+</h1>
+
+
 Have you ever tried to guess the genre of a book by reading its title? Well, in this project, I was trying to do it using a massive database of Books (their titles and genres), MLLib Spark, and the use of three different ML models, including:
 
 **1- Support Vector Machine (SVM)**
