@@ -1,0 +1,53 @@
+from pyspark.sql import SparkSession
+from pyspark.ml.feature import RegexTokenizer, HashingTF, IDF, StringIndexer, IndexToString
+from pyspark.ml.classification import LinearSVC, OneVsRest
+from pyspark.ml import Pipeline
+from pyspark.ml.evaluation import MulticlassClassificationEvaluator
+
+# Initialize a Spark session
+spark = SparkSession.builder.appName("SVMBookGenreClassification").getOrCreate()
+
+# Load data
+data = spark.read.csv("dbfs:/FileStore/shared_uploads/book32_listing-1.csv", header=True, inferSchema=True)
+data = data.filter(data.TITLE.isNotNull())  # Ensure no null titles
+data = data.na.drop(subset=["CATEGORY"])  # Drop any rows with null CATEGORY
+
+# Check for consistency and type issues
+data = data.withColumn("CATEGORY", data["CATEGORY"].cast("string"))
+
+# Index labels, adding metadata to the label column
+labelIndexer = StringIndexer(inputCol="CATEGORY", outputCol="label").fit(data)
+
+# Define stages for the pipeline
+tokenizer = RegexTokenizer(inputCol="TITLE", outputCol="words", pattern="\\W", toLowercase=True)
+hashingTF = HashingTF(inputCol="words", outputCol="rawFeatures", numFeatures=1000)
+idf = IDF(inputCol="rawFeatures", outputCol="features")
+
+# Initialize SVM and OneVsRest
+svm = LinearSVC(maxIter=10, regParam=0.1)
+ovr = OneVsRest(classifier=svm)
+
+# Convert indexed labels back to original labels
+labelConverter = IndexToString(inputCol="prediction", outputCol="predictedLabel", labels=labelIndexer.labels)
+
+# Construct the pipeline
+pipeline = Pipeline(stages=[tokenizer, hashingTF, idf, labelIndexer, ovr, labelConverter])
+
+# Split data into training and test sets
+(trainingData, testData) = data.randomSplit([0.8, 0.2])
+
+# Fit the model
+model = pipeline.fit(trainingData)
+
+# Make predictions
+predictions = model.transform(testData)
+
+# Evaluate the model
+evaluator = MulticlassClassificationEvaluator(labelCol="label", predictionCol="prediction", metricName="accuracy")
+accuracy = evaluator.evaluate(predictions)
+
+print("Accuracy = %g" % (accuracy))
+print("Test Error = %g" % (1.0 - accuracy))
+
+# Stop the Spark session
+spark.stop()
