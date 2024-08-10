@@ -1,0 +1,75 @@
+from pyspark.sql.functions import col
+from pyspark.ml.feature import RegexTokenizer, HashingTF, IDF, StringIndexer
+from pyspark.ml.classification import LogisticRegression
+from pyspark.ml import Pipeline
+from pyspark.ml.evaluation import MulticlassClassificationEvaluator
+from pyspark.mllib.evaluation import MulticlassMetrics
+from pyspark.sql.types import FloatType
+
+def load_and_prepare_data(file_path):
+    """Load and preprocess data by selecting the TITLE and CATEGORY columns, ensuring no nulls and filtering out likely incorrect categories."""
+    print("Loading data...")
+    data = spark.read.option("header", "true").csv(file_path).select("TITLE", "CATEGORY")
+    data = data.filter(data.TITLE.isNotNull() & data.CATEGORY.isNotNull())
+    data = data.withColumn("CATEGORY", col("CATEGORY").cast("string"))
+
+    # List of valid genres
+    valid_genres = [
+        "Arts & Photography", "Biographies & Memoirs", "Business & Money", "Calendars",
+        "Children's Books", "Christian Books & Bibles", "Comics & Graphic Novels", "Computers & Technology",
+        "Cookbooks, Food & Wine", "Crafts, Hobbies & Home", "Education & Teaching", "Engineering & Transportation",
+        "Gay & Lesbian", "Health, Fitness & Dieting", "History", "Humor & Entertainment",
+        "Law", "Literature & Fiction", "Medical Books", "Mystery, Thriller & Suspense",
+        "Parenting & Relationships", "Politics & Social Sciences", "Reference", "Religion & Spirituality",
+        "Romance", "Science & Math", "Science Fiction & Fantasy", "Self-Help", "Sports & Outdoors",
+        "Teen & Young Adult", "Test Preparation", "Travel"
+    ]
+    
+    # Filter data to only include valid genres
+    data = data.filter(data.CATEGORY.isin(valid_genres))
+    
+    print("Data loaded and preprocessed.")
+    return data
+
+def build_and_run_pipeline(data):
+    """Construct a pipeline for text processing and logistic regression."""
+    tokenizer = RegexTokenizer(inputCol="TITLE", outputCol="words", pattern="\\W")
+    hashingTF = HashingTF(inputCol="words", outputCol="rawFeatures", numFeatures=4000)
+    idf = IDF(inputCol="rawFeatures", outputCol="features")
+    indexer = StringIndexer(inputCol="CATEGORY", outputCol="label")
+    lr = LogisticRegression(maxIter=10000, regParam=0.0001, elasticNetParam=0.001)
+
+    pipeline = Pipeline(stages=[tokenizer, hashingTF, idf, indexer, lr])
+    print("Pipeline constructed.")
+
+    model = pipeline.fit(data)
+    predictions = model.transform(data)
+    print("Model training completed.")
+    return predictions
+
+def evaluate_model(predictions):
+    """Evaluate the model's performance using accuracy, F1 score, recall, and provide confusion matrix."""
+    # Convert DataFrame to RDD to use with MulticlassMetrics
+    predictionAndLabels = predictions.select('prediction', 'label').withColumn('label', col('label').cast(FloatType())).rdd.map(lambda lp: (float(lp.prediction), float(lp.label)))
+
+    # Instantiate metrics object
+    metrics = MulticlassMetrics(predictionAndLabels)
+
+    # Calculate metrics
+    accuracy = metrics.accuracy
+    f1Score = metrics.weightedFMeasure()
+    weightedPrecision = metrics.weightedPrecision
+    weightedRecall = metrics.weightedRecall
+    confusionMatrix = metrics.confusionMatrix().toArray()
+
+    print(f"Accuracy: {accuracy}")
+    print(f"F1 Score: {f1Score}")
+    print(f"Precision: {weightedPrecision}")
+    print(f"Recall: {weightedRecall}")
+    print("Confusion Matrix:")
+    print(confusionMatrix)
+
+data_path = "dbfs:/FileStore/shared_uploads/amirhossein.azami@utdallas.edu/book32.csv"
+data = load_and_prepare_data(data_path)
+predictions = build_and_run_pipeline(data)
+evaluate_model(predictions)
