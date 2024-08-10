@@ -47,3 +47,22 @@ The genres and labels of the books are as follows:
 |29|Travel|18,338|
 |30|Gay & Lesbian|1,339|
 |31|Education & Teaching|1,664|
+
+## Challenges:
+**Variability in Text Data:**
+
+Besides some simple book titles, text data from book titles can vary significantly in style, length, and complexity, posing substantial challenges in standardization and processing within a big data framework.
+Subjectivity in Genre Definition: The subjective nature of genre classification requires the models to discern subtle nuances that differentiate genres, a significant challenge given the complexity of textual data.
+
+**Efficiency and Scalability on Spark MLlib:** 
+
+Implementing ML algorithms efficiently on Spark MLlib to handle large datasets without compromising classification speed or accuracy. Specifically, deploying algorithms like SVM, which involves iterative parameter tuning and optimization, can be computationally intensive on distributed systems. Similarly, configuring multilayer neural networks on Spark requires careful distributed data management and extensive tuning to achieve optimal performance and convergence.
+
+**Interpretability of Results:**
+
+It is essential to provide results that are interpretable for stakeholders, such as publishers and authors, ensuring that the classification models are accurate and transparent in their genre categorization processes.
+
+**Technical Complexity of Spark MLlib:**
+
+Spark MLlib, while powerful, presents its own set of challenges, including the difficulty of deploying complex models such as SVMs and deep neural networks. These models require extensive custom configuration and optimization to perform effectively in a distributed computing environment, complicating their implementation and scalability.
+
