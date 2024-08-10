@@ -1,0 +1,84 @@
+# final version
+
+from pyspark.ml import Pipeline
+from pyspark.ml.feature import RegexTokenizer, HashingTF, PCA, StringIndexer, VectorAssembler
+from pyspark.ml.classification import MultilayerPerceptronClassifier
+from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
+from pyspark.ml.evaluation import MulticlassClassificationEvaluator
+from pyspark.sql.functions import col
+
+# Load and prepare data
+def load_and_prepare_data(file_path):
+    print("Loading data...")
+    data = spark.read.option("header", "true").csv(file_path).select("TITLE", "CATEGORY")
+    data = data.filter(data.TITLE.isNotNull() & data.CATEGORY.isNotNull())
+    data = data.withColumn("CATEGORY", col("CATEGORY").cast("string"))
+    data = data.filter(data.CATEGORY.isin(valid_genres))
+    return data
+
+data_path = "dbfs:/FileStore/shared_uploads/sxs220141@utdallas.edu/book32.csv"
+valid_genres = [
+        "Arts & Photography", "Biographies & Memoirs", "Business & Money", "Calendars",
+        "Children's Books", "Christian Books & Bibles", "Comics & Graphic Novels", "Computers & Technology",
+        "Cookbooks, Food & Wine", "Crafts, Hobbies & Home", "Education & Teaching", "Engineering & Transportation",
+        "Gay & Lesbian", "Health, Fitness & Dieting", "History", "Humor & Entertainment",
+        "Law", "Literature & Fiction", "Medical Books", "Mystery, Thriller & Suspense",
+        "Parenting & Relationships", "Politics & Social Sciences", "Reference", "Religion & Spirituality",
+        "Romance", "Science & Math", "Science Fiction & Fantasy", "Self-Help", "Sports & Outdoors",
+        "Teen & Young Adult", "Test Preparation", "Travel"
+    ]
+
+data = load_and_prepare_data(data_path)
+
+# Text processing and feature engineering
+print("Setting up text processing and feature engineering stages...")
+# Step 1: Tokenization
+tokenizer = RegexTokenizer(inputCol="TITLE", outputCol="words", pattern="\\W")
+# Step 2: Feature hashing
+hashingTF = HashingTF(inputCol="words", outputCol="rawFeatures")
+# Step 3: Principal Component Analysis
+pca = PCA(inputCol="rawFeatures", outputCol="pcaFeatures")
+# Step 4: String indexing
+indexer = StringIndexer(inputCol="CATEGORY", outputCol="label")
+# Step 5: Vector Assembler
+vectorAssembler = VectorAssembler(inputCols=["pcaFeatures"], outputCol="selected_features")
+
+# Step 6: Multilayer Perceptron Classifier
+mlp = MultilayerPerceptronClassifier(layers=[32, 64, 32], seed=1234, featuresCol="selected_features")
+
+# Combine stages into pipeline
+print("Constructing pipeline...")
+pipeline_stages = [tokenizer, hashingTF, pca, indexer, vectorAssembler, mlp]
+pipeline = Pipeline(stages=pipeline_stages)
+
+# Define parameter grid
+print("Setting up parameter grid...")
+paramGrid = ParamGridBuilder() \
+    .addGrid(hashingTF.numFeatures, [500, 1000]) \
+    .addGrid(mlp.maxIter, [50, 100]) \
+    .addGrid(pca.k, [32]) \
+    .build()
+
+# Define evaluator
+evaluator = MulticlassClassificationEvaluator(labelCol="label", predictionCol="prediction", metricName="accuracy")
+
+# Define cross-validator
+crossval = CrossValidator(estimator=pipeline,
+                          estimatorParamMaps=paramGrid,
+                          evaluator=evaluator,
+                          numFolds=3)  # Use 3 folds for cross-validation
+
+# Run cross-validation
+print("Running cross-validation...")
+cv_model = crossval.fit(data)
+
+# Get the best model
+best_model = cv_model.bestModel
+
+# Print out the best model's parameters and accuracy
+print("Best model parameters:")
+for param_name, param_value in best_model.stages[-1].extractParamMap().items():
+    print("{}: {}".format(param_name.name, param_value))
+
+best_accuracy = evaluator.evaluate(best_model.transform(data))
+print("Best model accuracy: {:.2f}%".format(best_accuracy * 100))
