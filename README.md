@@ -11,7 +11,7 @@ You will need to download the data using this link:
 
   https://github.com/uchidalab/book-dataset.git
 
-The genres and lables of the books are as follows:
+The genres and labels of the books are as follows:
 
 |Label|Category Name|Size|
 |---|---|---|
