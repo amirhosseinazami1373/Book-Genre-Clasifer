@@ -1,0 +1,20 @@
+# use this section to make a plot from the dataset. 
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col
+import matplotlib.pyplot as plt
+
+# Initialize a Spark session
+spark = SparkSession.builder.appName("BookGenreVisualization").getOrCreate()
+
+# Load data
+data = spark.read.csv("dbfs:/FileStore/shared_uploads/book32_listing-1.csv", header=True, inferSchema=True)
+
+# Ensure there are no null values in the Category column
+data = data.filter(data.CATEGORY.isNotNull())
+
+# Count the number of books in each genre
+genre_counts = data.groupBy("CATEGORY").count()
+
+# Collect the data to Python for visualization
+genre_counts = genre_counts.orderBy("count", ascending=False).toPandas()
